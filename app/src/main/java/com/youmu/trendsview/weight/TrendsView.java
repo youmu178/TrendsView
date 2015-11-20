@@ -18,6 +18,9 @@ import java.util.Random;
  */
 public class TrendsView extends View {
 
+    private ViewThread mThread;
+    private boolean isRunning = true;
+
     private ArrayList<Item> mItemList = new ArrayList<>();
 
     public TrendsView(Context context) {
@@ -33,11 +36,13 @@ public class TrendsView extends View {
     }
 
     private void initData() {
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 100; i++) {
             Item item = new Item(getWidth(), getHeight());
             mItemList.add(item);
         }
     }
+
+    private Bitmap mMoveBitmap;
 
     public class Item {
         private float mLeft;
@@ -47,7 +52,6 @@ public class TrendsView extends View {
         private int mScreenWidth;
         private int mScreenHeight;
         Random mRandom = new Random();
-        private Bitmap mMoveBitmap;
 
         public Item(int width, int height) {
             this.mScreenWidth = width;
@@ -63,12 +67,13 @@ public class TrendsView extends View {
             mPaint.setAntiAlias(true);
             mLeft = mRandom.nextInt(mScreenWidth);
             mTop = mRandom.nextInt(mScreenHeight);
-            mOpt = mRandom.nextInt(80);
+            mOpt = mRandom.nextFloat();
+//            mOpt = mRandom.nextInt(100) - 80 + 1;
         }
 
         private void onMove() {
-            mLeft += mLeft * mOpt;
-            mTop += mTop * mOpt;
+            mLeft += 20 * mOpt;
+            mTop += 30 * mOpt;
             if (mTop > mScreenHeight) {
                 init();
             }
@@ -82,27 +87,47 @@ public class TrendsView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        postDelayed(mRunnable, 30);
-        for (Item item : mItemList) {
-            item.onDraw(canvas);
+//        postDelayed(mRunnable, 30);
+        if (mThread == null) {
+            mThread = new ViewThread();
+            mThread.start();
+        } else {
+            for (Item item : mItemList) {
+                item.onDraw(canvas);
+            }
         }
     }
 
-    Runnable mRunnable = new Runnable() {
+    class ViewThread extends Thread {
         @Override
         public void run() {
             initData();
-            // 移动
-            for (Item item : mItemList) {
-                item.onMove();
+            while (isRunning) {
+                for (Item item : mItemList) {
+                    item.onMove();
+                }
+                postInvalidate();
+                try {
+                    Thread.sleep(30);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
-            postInvalidate();
         }
-    };
+    }
+
+//    Runnable mRunnable = new Runnable() {
+//        @Override
+//        public void run() {
+//            initData();
+//            // 移动
+//
+//        };
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        removeCallbacks(mRunnable);
+//        removeCallbacks(mRunnable);
+        isRunning = false;
     }
 }
